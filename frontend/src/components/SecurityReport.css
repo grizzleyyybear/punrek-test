@@ -1,0 +1,58 @@
+.security-report {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border-left: 5px solid;
+}
+
+.security-report.passed {
+  border-left-color: #4CAF50; /* Green */
+}
+
+.security-report.failed {
+  border-left-color: #f44336; /* Red */
+}
+
+.security-report h3 {
+  margin-top: 0;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+
+.summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  font-size: 1.1em;
+}
+
+.score {
+  font-weight: bold;
+}
+
+.vulnerability-list h4 {
+  margin-bottom: 10px;
+}
+
+.vulnerability-list ul {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.vulnerability-list li {
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 4px;
+}
+
+.details {
+  font-family: monospace;
+  font-size: 0.9em;
+  color: #555;
+  margin-top: 5px;
+  word-break: break-all;
+}
