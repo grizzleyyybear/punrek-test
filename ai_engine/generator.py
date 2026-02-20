@@ -1,23 +1,42 @@
-import torch
+import os
 import networkx as nx
-from ai_engine.model import load_model, PCBLayoutGenerator
-from ai_engine.graph_utils import pyg_data_to_graph, normalize_graph, validate_pcb_graph
 from ai_engine.pso_optimizer import PSOOptimizer
-from ai_engine.constraint_cost import calculate_constraint_cost
 import numpy as np
 from typing import Dict, Tuple
+
+
+class _NoOpLayoutGenerator:
+    """Fallback layout generator used when AI model dependencies are unavailable."""
+
+    def __init__(self, model):
+        self.model = model
 
 
 # Main class for generating PCB layouts.
 class PCBGenerator:
     def __init__(self, model_path="pcb_gnn.pt"):
-        self.model = (
-            load_model(model_path)
-            if self._model_exists(model_path)
-            else self._create_dummy_model()
+        self.model = None
+        self.layout_generator = _NoOpLayoutGenerator(self.model)
+
+        try:
+            from ai_engine.model import PCBLayoutGenerator, load_model
+
+            self.model = (
+                load_model(model_path)
+                if self._model_exists(model_path)
+                else self._create_dummy_model()
+            )
+            self.layout_generator = PCBLayoutGenerator(self.model)
+        except Exception:
+            # Gracefully fallback when optional ML dependencies are unavailable
+            # (for example, in lightweight serverless environments).
+            self.model = None
+            self.layout_generator = _NoOpLayoutGenerator(self.model)
+
+        self.pso_optimizer = PSOOptimizer(
+            num_particles=int(os.getenv("PSO_PARTICLES", "8")),
+            max_iterations=int(os.getenv("PSO_ITERATIONS", "30")),
         )
-        self.layout_generator = PCBLayoutGenerator(self.model)
-        self.pso_optimizer = PSOOptimizer()
 
     # Checks if the GNN model file exists.
     def _model_exists(self, path: str) -> bool:
@@ -33,12 +52,17 @@ class PCBGenerator:
 
     # Generates a PCB layout from a set of specifications.
     def generate_layout(self, spec: Dict) -> Tuple[Dict, Dict]:
+        seed = spec.get("seed")
+        if seed is not None:
+            np.random.seed(int(seed))
+
         spec_vector = self._spec_to_vector(spec)
         num_components = spec.get("component_count", 10)
         initial_layout = self._generate_initial_layout_advanced(
             spec_vector, num_components
         )
         optimized_layout = self.pso_optimizer.optimize_layout(initial_layout, spec)
+        self._ensure_connectivity(optimized_layout)
         pcb_graph_dict = self._graph_to_dict(optimized_layout)
         metrics = self._calculate_metrics(pcb_graph_dict, spec)
         return pcb_graph_dict, metrics
@@ -95,6 +119,9 @@ class PCBGenerator:
 
     # Ensures the graph is fully connected.
     def _ensure_connectivity(self, graph: nx.Graph):
+        if graph.number_of_nodes() <= 1:
+            return
+
         if not nx.is_connected(graph):
             components = list(nx.connected_components(graph))
             for i in range(len(components) - 1):

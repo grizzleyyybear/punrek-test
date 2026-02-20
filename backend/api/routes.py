@@ -1,4 +1,5 @@
 import os
+import tempfile
 from fastapi import APIRouter, HTTPException
 from ai_engine.generator import PCBGenerator
 from .schemas import (
@@ -23,7 +24,10 @@ exporter = KiCadExporter()
 @router.post("/generate_layout", response_model=LayoutResponse)
 async def generate_layout(request: LayoutRequest):
     try:
-        pcb_graph, metrics = generator.generate_layout(request.specification.dict())
+        spec_payload = request.specification.model_dump()
+        if request.seed is not None:
+            spec_payload["seed"] = request.seed
+        pcb_graph, metrics = generator.generate_layout(spec_payload)
         return LayoutResponse(
             success=True,
             pcb_graph=pcb_graph,
@@ -52,7 +56,7 @@ async def analyze_security(request: SecurityAnalysisRequest):
 @router.post("/export_kicad", response_model=ExportResponse)
 async def export_kicad(request: ExportRequest):
     try:
-        export_dir = "exports"
+        export_dir = os.path.join(tempfile.gettempdir(), "exports")
         os.makedirs(export_dir, exist_ok=True)
         filepath = os.path.join(export_dir, request.filename)
         success = exporter.export_to_kicad(request.pcb_graph, filepath)
