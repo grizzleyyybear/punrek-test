@@ -52,12 +52,17 @@ class PCBGenerator:
 
     # Generates a PCB layout from a set of specifications.
     def generate_layout(self, spec: Dict) -> Tuple[Dict, Dict]:
+        seed = spec.get("seed")
+        if seed is not None:
+            np.random.seed(int(seed))
+
         spec_vector = self._spec_to_vector(spec)
         num_components = spec.get("component_count", 10)
         initial_layout = self._generate_initial_layout_advanced(
             spec_vector, num_components
         )
         optimized_layout = self.pso_optimizer.optimize_layout(initial_layout, spec)
+        self._ensure_connectivity(optimized_layout)
         pcb_graph_dict = self._graph_to_dict(optimized_layout)
         metrics = self._calculate_metrics(pcb_graph_dict, spec)
         return pcb_graph_dict, metrics

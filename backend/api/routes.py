@@ -24,7 +24,7 @@ exporter = KiCadExporter()
 @router.post("/generate_layout", response_model=LayoutResponse)
 async def generate_layout(request: LayoutRequest):
     try:
-        pcb_graph, metrics = generator.generate_layout(request.specification.dict())
+        pcb_graph, metrics = generator.generate_layout(request.specification.model_dump())
         return LayoutResponse(
             success=True,
             pcb_graph=pcb_graph,
