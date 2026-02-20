@@ -119,6 +119,9 @@ class PCBGenerator:
 
     # Ensures the graph is fully connected.
     def _ensure_connectivity(self, graph: nx.Graph):
+        if graph.number_of_nodes() <= 1:
+            return
+
         if not nx.is_connected(graph):
             components = list(nx.connected_components(graph))
             for i in range(len(components) - 1):
