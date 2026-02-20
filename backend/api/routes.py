@@ -1,4 +1,5 @@
 import os
+import tempfile
 from fastapi import APIRouter, HTTPException
 from ai_engine.generator import PCBGenerator
 from .schemas import (
@@ -52,7 +53,7 @@ async def analyze_security(request: SecurityAnalysisRequest):
 @router.post("/export_kicad", response_model=ExportResponse)
 async def export_kicad(request: ExportRequest):
     try:
-        export_dir = "exports"
+        export_dir = os.path.join(tempfile.gettempdir(), "exports")
         os.makedirs(export_dir, exist_ok=True)
         filepath = os.path.join(export_dir, request.filename)
         success = exporter.export_to_kicad(request.pcb_graph, filepath)
